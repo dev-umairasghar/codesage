@@ -1,26 +1,28 @@
 # CodeSage
 
-Local-first, **stateless** AI pull request review assistant for developers.
+Local-first, **stateless** AI pull request review assistant.
 
-Configure secrets once, run against GitHub + OpenAI, get structured reviews — no database, no accounts, no OAuth.
+Configure a GitHub Personal Access Token and an OpenAI API key, run locally, and review PRs through a simple UI. No accounts, no OAuth, no database, no cloud lock-in.
 
-## Stages
+**Repo:** [github.com/dev-umairasghar/codesage](https://github.com/dev-umairasghar/codesage)
 
-| Stage | Status |
-|-------|--------|
-| 1. Foundation | Done |
-| 2. GitHub REST (PAT) | Done |
-| 3. Deterministic PR analysis | Done |
-| 4. OpenAI AI review engine | Done |
-| 5. Options pattern, validation, health/diagnostics | Done |
-| 6. Public API polish (v1, Swagger/OpenAPI, ProblemDetails) | Done |
-| 7. React frontend | Done |
+## Prerequisites
 
-**Not in scope yet:** auth, database, persistence, RAG, MCP, agents, Semantic Kernel, background jobs.
+- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (runtime/SDK 9.x)
+- [Node.js 20+](https://nodejs.org/)
+- GitHub PAT with access to the repos you want to review
+- OpenAI API key
+
+> Never commit secrets. Do **not** put keys in `appsettings.json`. Use user-secrets or environment variables.
 
 ## Quick start
 
-### API
+```bash
+git clone https://github.com/dev-umairasghar/codesage.git
+cd codesage
+```
+
+### 1. API (`http://localhost:5080`)
 
 ```bash
 dotnet restore
@@ -29,13 +31,14 @@ dotnet build
 cd src/CodeSage.Api
 dotnet user-secrets set "GitHub:PersonalAccessToken" "ghp_your_token"
 dotnet user-secrets set "OpenAI:ApiKey" "sk-your_key"
+cd ../..
 
 dotnet run --project src/CodeSage.Api
 ```
 
-API listens on `http://localhost:5080` (see `launchSettings.json`).
+Swagger (Development): `http://localhost:5080/swagger`
 
-### Web UI
+### 2. Web UI (`http://localhost:5173`)
 
 ```bash
 cd web
@@ -43,38 +46,40 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` — Vite proxies `/api` to the API.
+Vite proxies `/api` to the API. Open the UI and follow:
 
-- Swagger UI (Development): `/swagger`
-- OpenAPI document: `/swagger/v1/swagger.json` (also [`docs/openapi-v1.json`](docs/openapi-v1.json))
-- Health: `GET /api/v1/health` (alias: `/api/health`)
-- Config summary: `GET /api/v1/configuration`
+**Repositories → Pull request → Run AI review**
 
-**Recommended for local secrets:** .NET User Secrets — see [docs/Configuration.md](docs/Configuration.md).
+## Configuration
 
-## API (v1)
+| Approach | When to use |
+|----------|-------------|
+| **User secrets** (recommended locally) | Day-to-day development |
+| Environment variables (`GitHub__PersonalAccessToken`, `OpenAI__ApiKey`) | CI / containers |
+| `appsettings.*.json` | Non-secret defaults only |
+
+Details: [docs/Configuration.md](docs/Configuration.md)
+
+## API overview
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | `GET` | `/api/v1/health` | Liveness |
-| `GET` | `/api/v1/system/status` | Diagnostics |
+| `GET` | `/api/v1/system/status` | Diagnostics (no secrets) |
 | `GET` | `/api/v1/configuration` | Public config summary |
 | `GET` | `/api/v1/repositories` | List repos |
-| `GET` | `/api/v1/repositories/{owner}/{name}` | Repo details |
 | `GET` | `/api/v1/repositories/{owner}/{name}/pull-requests` | List PRs |
-| `GET` | `/api/v1/repositories/{owner}/{name}/pull-requests/{number}` | PR details |
-| `GET` | `/api/v1/repositories/{owner}/{name}/pull-requests/{number}/analysis` | `ReviewContext` |
 | `POST` | `/api/v1/reviews` | Stateless AI review |
 
-Full docs: [docs/api.md](docs/api.md) · Web app: [web/README.md](web/README.md)
+Full docs: [docs/api.md](docs/api.md) · OpenAPI: [docs/openapi-v1.json](docs/openapi-v1.json) · Web: [web/README.md](web/README.md)
 
-## Solution layout
+## Project layout
 
 ```
-src/          # .NET API (Clean Architecture)
-web/          # React + Vite frontend
-tests/        # .NET unit + integration tests
-docs/         # API + configuration docs
+src/     ASP.NET Core API (Clean Architecture)
+web/     React + Vite + TypeScript UI
+tests/   .NET unit + integration tests
+docs/    API and configuration docs
 ```
 
 ## Tests
@@ -84,10 +89,12 @@ dotnet test
 cd web && npm test
 ```
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 ## Design notes
 
-- Public API under `/api/v1` — ready for typed client generation from OpenAPI
-- FluentValidation + MediatR pipeline — invalid requests never reach handlers
-- Centralized ProblemDetails (`errorCode`, `traceId`)
-- Frontend talks only to CodeSage REST — never GitHub/OpenAI directly
-- Response compression + structured request logging (never logs secrets)
+- Frontend talks only to the CodeSage API (never GitHub/OpenAI directly)
+- Reviews are stateless — session history in the UI is browser-only
+- Errors use RFC 7807 ProblemDetails with `errorCode` + `traceId`
