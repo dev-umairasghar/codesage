@@ -6,6 +6,14 @@ Configure a GitHub Personal Access Token and an OpenAI API key, run locally, and
 
 **Repo:** [github.com/dev-umairasghar/codesage](https://github.com/dev-umairasghar/codesage)
 
+## Screenshots
+
+![Repositories](docs/screenshots/repos.png)
+
+![Pull requests](docs/screenshots/prs.png)
+
+![AI review](docs/screenshots/review.png)
+
 ## Prerequisites
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) (runtime/SDK 9.x)
