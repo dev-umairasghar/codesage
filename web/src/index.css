@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-canvas: #0f1419;
+  --color-panel: #161c24;
+  --color-panel-elevated: #1c2430;
+  --color-border: #2a3441;
+  --color-border-strong: #3a4656;
+  --color-ink: #e8eef4;
+  --color-ink-muted: #9aa8b8;
+  --color-ink-subtle: #6b7a8c;
+  --color-accent: #2dd4bf;
+  --color-accent-dim: #0f766e;
+  --color-accent-soft: rgba(45, 212, 191, 0.12);
+  --color-danger: #f87171;
+  --color-warning: #fbbf24;
+  --color-success: #4ade80;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply m-0 min-h-svh bg-canvas font-sans text-ink antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(45, 212, 191, 0.08), transparent),
+      linear-gradient(rgba(42, 52, 65, 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(42, 52, 65, 0.35) 1px, transparent 1px);
+    background-size: auto, 48px 48px, 48px 48px;
+  }
+
+  #root {
+    @apply min-h-svh;
+  }
+
+  a {
+    @apply text-accent underline-offset-4 hover:underline;
+  }
+
+  ::selection {
+    @apply bg-accent-soft text-ink;
+  }
+}

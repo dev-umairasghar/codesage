@@ -1,0 +1,14 @@
+[
+  {
+    "id": 2001,
+    "body": "Consider extracting the mapper.",
+    "created_at": "2024-06-01T13:00:00Z",
+    "path": "src/CodeSage.Infrastructure/GitHub/GitHubClient.cs",
+    "line": 40,
+    "user": {
+      "id": 7,
+      "login": "reviewer",
+      "html_url": "https://github.com/reviewer"
+    }
+  }
+]

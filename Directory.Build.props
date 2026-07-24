@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    Shared build defaults for every project in the solution.
+    Keeps contributor onboarding simple: clone, build, done.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <Authors>CodeSage Contributors</Authors>
+    <Company>CodeSage</Company>
+    <Product>CodeSage</Product>
+    <Copyright>Copyright (c) CodeSage Contributors</Copyright>
+  </PropertyGroup>
+</Project>

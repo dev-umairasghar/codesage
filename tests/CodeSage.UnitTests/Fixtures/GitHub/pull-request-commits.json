@@ -1,0 +1,17 @@
+[
+  {
+    "sha": "abc123def456",
+    "commit": {
+      "message": "Wire GitHub OAuth",
+      "author": {
+        "name": "Octo Cat",
+        "date": "2024-06-01T11:00:00Z"
+      }
+    },
+    "author": {
+      "id": 99,
+      "login": "octocat",
+      "html_url": "https://github.com/octocat"
+    }
+  }
+]

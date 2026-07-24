@@ -1,0 +1,1847 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "CodeSage API",
+    "description": "Local-first, stateless AI pull request review assistant.\n\n## Authentication\nNo user authentication. Configure `GitHub:PersonalAccessToken` and `OpenAI:ApiKey`\nvia user-secrets or environment variables.\n\n## Errors\nAll failures return RFC 7807 `application/problem+json` with an `errorCode` extension.\n\n## Versioning\nCurrent surface is `/api/v1`. Breaking changes will ship as `/api/v2`.",
+    "contact": {
+      "name": "CodeSage Contributors",
+      "url": "https://github.com/codesage"
+    },
+    "license": {
+      "name": "MIT"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/v1/configuration": {
+      "get": {
+        "tags": [
+          "Configuration"
+        ],
+        "summary": "Public configuration summary",
+        "description": "Returns non-secret runtime configuration useful for clients and troubleshooting. API keys and tokens are never included — only whether they are configured.",
+        "operationId": "GetConfigurationV1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfigurationSummaryResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed — RFC 7807 ProblemDetails with an errors object.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Liveness probe",
+        "description": "Returns process liveness. Does not probe GitHub or OpenAI. Safe for orchestrators and load balancers.",
+        "operationId": "GetHealthV1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed — RFC 7807 ProblemDetails with an errors object.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/status": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "System diagnostics",
+        "description": "Returns configuration readiness and optional connectivity probes. Never includes API keys or tokens. Disable probes with Application:ProbeExternalConnectivity=false.",
+        "operationId": "GetSystemStatusV1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemStatusResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed — RFC 7807 ProblemDetails with an errors object.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/repositories/{owner}/{name}/pull-requests": {
+      "get": {
+        "tags": [
+          "Pull Requests"
+        ],
+        "summary": "List pull requests",
+        "description": "Lists pull requests for a repository (all states, recently updated first).",
+        "operationId": "ListPullRequestsV1",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PullRequestSummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error — RFC 7807 ProblemDetails.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/repositories/{owner}/{name}/pull-requests/{number}": {
+      "get": {
+        "tags": [
+          "Pull Requests"
+        ],
+        "summary": "Get pull request",
+        "description": "Returns pull request details including files, commits, and review/issue comments.",
+        "operationId": "GetPullRequestV1",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PullRequestDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error — RFC 7807 ProblemDetails.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/repositories/{owner}/{name}/pull-requests/{number}/analysis": {
+      "get": {
+        "tags": [
+          "Pull Requests"
+        ],
+        "summary": "Analyze pull request",
+        "description": "Builds a deterministic ReviewContext for the pull request. Does not call OpenAI. Pass the result to POST /api/v1/reviews for an AI review.",
+        "operationId": "AnalyzePullRequestV1",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "number",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewContext"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error — RFC 7807 ProblemDetails.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/repositories": {
+      "get": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "List repositories",
+        "description": "Lists repositories visible to the configured GitHub Personal Access Token (owned, collaborator, and organization memberships the token can see).",
+        "operationId": "ListRepositoriesV1",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepositorySummaryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed — RFC 7807 ProblemDetails with an errors object.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error — RFC 7807 ProblemDetails.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/repositories/{owner}/{name}": {
+      "get": {
+        "tags": [
+          "Repositories"
+        ],
+        "summary": "Get repository",
+        "description": "Returns details for a single repository identified by owner and name.",
+        "operationId": "GetRepositoryV1",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryDetailsDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error — RFC 7807 ProblemDetails.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reviews": {
+      "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Create AI review",
+        "description": "Runs the configured OpenAI model against a ReviewContext and returns a structured ReviewReport. Stateless — nothing is persisted. Obtain a ReviewContext from GET .../pull-requests/{number}/analysis.",
+        "operationId": "CreateReviewV1",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewContext"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Bad Gateway",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error — RFC 7807 ProblemDetails.",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "integer"
+                    },
+                    "detail": {
+                      "type": "string"
+                    },
+                    "instance": {
+                      "type": "string"
+                    },
+                    "traceId": {
+                      "type": "string"
+                    },
+                    "errorCode": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChangedFileDto": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "additions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "changes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "patch": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A file changed in a pull request."
+      },
+      "CodeLanguage": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9
+        ],
+        "type": "integer",
+        "description": "Programming languages / formats CodeSage can classify in Stage 3.\nUnknown and Binary are explicit so future AI providers can filter safely.",
+        "format": "int32"
+      },
+      "CommitSummaryDto": {
+        "type": "object",
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "authorLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "committedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Commit summary associated with a pull request."
+      },
+      "ConfigurationSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "application": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "gitHubApiBaseUrl": {
+            "type": "string"
+          },
+          "gitHubTokenConfigured": {
+            "type": "boolean"
+          },
+          "aiProvider": {
+            "type": "string"
+          },
+          "aiModel": {
+            "type": "string"
+          },
+          "openAiBaseUrl": {
+            "type": "string"
+          },
+          "openAiApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "probeExternalConnectivity": {
+            "type": "boolean"
+          },
+          "requireSecretsAtStartup": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Public configuration summary for clients. Never includes secrets.",
+        "example": "{\"application\":\"CodeSage\",\"version\":\"0.1.0\",\"environment\":\"Development\",\"gitHubApiBaseUrl\":\"https://api.github.com/\",\"gitHubTokenConfigured\":true,\"aiProvider\":\"OpenAI\",\"aiModel\":\"gpt-4o-mini\",\"openAiBaseUrl\":\"https://api.openai.com/v1/\",\"openAiApiKeyConfigured\":true,\"probeExternalConnectivity\":true,\"requireSecretsAtStartup\":true}"
+      },
+      "ConnectivityCheckResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "httpStatusCode": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Result of an optional external connectivity probe."
+      },
+      "FileChangeStatus": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "description": "Normalized change status — independent of any source-control vendor vocabulary.",
+        "format": "int32"
+      },
+      "FindingCategory": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "type": "integer",
+        "description": "Category for an individual finding.",
+        "format": "int32"
+      },
+      "FindingSeverity": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "type": "integer",
+        "description": "Severity for an individual finding.",
+        "format": "int32"
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string"
+          },
+          "application": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Public health-check response contract returned by `GET /api/health`.",
+        "example": "{\"status\":\"Healthy\",\"application\":\"CodeSage\",\"version\":\"0.1.0\"}"
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": { }
+      },
+      "PullRequestCommentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "authorLogin": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "nullable": true
+          },
+          "line": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Issue or review comment on a pull request."
+      },
+      "PullRequestDetailsDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string"
+          },
+          "draft": {
+            "type": "boolean"
+          },
+          "authorLogin": {
+            "type": "string"
+          },
+          "authorAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "htmlUrl": {
+            "type": "string"
+          },
+          "baseRef": {
+            "type": "string"
+          },
+          "headRef": {
+            "type": "string"
+          },
+          "changedFiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChangedFileDto"
+            }
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommitSummaryDto"
+            }
+          },
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PullRequestCommentDto"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "Full pull request details including files, commits, and comments."
+      },
+      "PullRequestSummaryDto": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "draft": {
+            "type": "boolean"
+          },
+          "authorLogin": {
+            "type": "string"
+          },
+          "authorAvatarUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "htmlUrl": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Compact pull request listing item."
+      },
+      "RepositoryDetailsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "ownerLogin": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "htmlUrl": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string",
+            "nullable": true
+          },
+          "openIssuesCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "forksCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "stargazersCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Detailed repository view."
+      },
+      "RepositorySummaryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "ownerLogin": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "private": {
+            "type": "boolean"
+          },
+          "htmlUrl": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Compact repository listing item."
+      },
+      "ReviewAuthorInfo": {
+        "type": "object",
+        "properties": {
+          "login": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewCommitInfo": {
+        "type": "object",
+        "properties": {
+          "sha": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "authorName": {
+            "type": "string"
+          },
+          "authorLogin": {
+            "type": "string",
+            "nullable": true
+          },
+          "committedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewContext": {
+        "type": "object",
+        "properties": {
+          "repository": {
+            "$ref": "#/components/schemas/ReviewRepositoryInfo"
+          },
+          "pullRequest": {
+            "$ref": "#/components/schemas/ReviewPullRequestInfo"
+          },
+          "author": {
+            "$ref": "#/components/schemas/ReviewAuthorInfo"
+          },
+          "commits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewCommitInfo"
+            }
+          },
+          "changedFiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewFileChange"
+            }
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/ReviewStatistics"
+          },
+          "languageBreakdown": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The only object future AI providers should consume.\nContains no GitHub / Octokit / vendor types — only CodeSage vocabulary.",
+        "example": "{\"repository\":{\"name\":\"Healthcare.API\",\"fullName\":\"acme/Healthcare.API\",\"defaultBranch\":\"main\"},\"pullRequest\":{\"number\":42,\"title\":\"Harden auth\",\"description\":\"...\",\"state\":\"open\",\"isDraft\":false,\"baseRef\":\"main\",\"headRef\":\"feature/auth\",\"createdAt\":\"2026-07-01T12:00:00Z\",\"updatedAt\":\"2026-07-02T09:00:00Z\"},\"author\":{\"login\":\"dev\",\"name\":null,\"avatarUrl\":null},\"commits\":[],\"changedFiles\":[],\"statistics\":{\"fileCount\":1,\"commitCount\":1,\"additions\":10,\"deletions\":2,\"totalChangedLines\":12,\"languagesUsed\":[\"C#\"],\"largestModifiedFile\":\"Auth.cs\",\"largestModifiedFileChanges\":12,\"testFilesChanged\":0,\"sqlFilesChanged\":0,\"configurationFilesChanged\":0,\"controllerFilesChanged\":0,\"serviceFilesChanged\":0,\"sqlModified\":false},\"languageBreakdown\":{\"C#\":1},\"summary\":\"Deterministic analysis summary\"}"
+      },
+      "ReviewFileChange": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string"
+          },
+          "extension": {
+            "type": "string"
+          },
+          "language": {
+            "$ref": "#/components/schemas/CodeLanguage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/FileChangeStatus"
+          },
+          "additions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalChanges": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "patch": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBinary": {
+            "type": "boolean"
+          },
+          "isSupported": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewFinding": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "whyItMatters": {
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/FindingSeverity"
+          },
+          "category": {
+            "$ref": "#/components/schemas/FindingCategory"
+          },
+          "filePath": {
+            "type": "string",
+            "nullable": true
+          },
+          "startLine": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "endLine": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "suggestion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewPullRequestInfo": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "state": {
+            "type": "string"
+          },
+          "isDraft": {
+            "type": "boolean"
+          },
+          "baseRef": {
+            "type": "string"
+          },
+          "headRef": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewReport": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "overallRisk": {
+            "$ref": "#/components/schemas/ReviewRiskLevel"
+          },
+          "positiveFindings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewFinding"
+            }
+          },
+          "recommendations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missingTests": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "securityConcerns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewFinding"
+            }
+          },
+          "performanceConcerns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewFinding"
+            }
+          },
+          "maintainability": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewFinding"
+            }
+          },
+          "architectureConcerns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewFinding"
+            }
+          },
+          "model": {
+            "type": "string"
+          },
+          "promptTokens": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "completionTokens": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "totalTokens": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "duration": {
+            "type": "string",
+            "format": "date-span"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Structured review report — the only AI output the rest of CodeSage consumes.",
+        "example": "{\"summary\":\"Solid incremental change with one auth edge case.\",\"overallRisk\":\"Medium\",\"positiveFindings\":[\"Clear PR description\"],\"issues\":[],\"recommendations\":[\"Add a regression test for the null token path\"],\"missingTests\":[\"Auth failure path\"],\"securityConcerns\":[],\"performanceConcerns\":[],\"maintainability\":[],\"architectureConcerns\":[],\"model\":\"gpt-4o-mini\",\"promptTokens\":1200,\"completionTokens\":400,\"totalTokens\":1600,\"duration\":\"00:00:02.1500000\"}"
+      },
+      "ReviewRepositoryInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "defaultBranch": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReviewRiskLevel": {
+        "enum": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "type": "integer",
+        "description": "Overall risk level assigned by the model.",
+        "format": "int32"
+      },
+      "ReviewStatistics": {
+        "type": "object",
+        "properties": {
+          "fileCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commitCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "additions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalChangedLines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "languagesUsed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "largestModifiedFile": {
+            "type": "string",
+            "nullable": true
+          },
+          "largestModifiedFileChanges": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "testFilesChanged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sqlFilesChanged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "configurationFilesChanged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "controllerFilesChanged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "serviceFilesChanged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sqlModified": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SystemStatusResponse": {
+        "type": "object",
+        "properties": {
+          "application": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "aiProvider": {
+            "type": "string"
+          },
+          "aiModel": {
+            "type": "string"
+          },
+          "gitHubTokenConfigured": {
+            "type": "boolean"
+          },
+          "openAiApiKeyConfigured": {
+            "type": "boolean"
+          },
+          "gitHubConnectivity": {
+            "$ref": "#/components/schemas/ConnectivityCheckResult"
+          },
+          "openAiConnectivity": {
+            "$ref": "#/components/schemas/ConnectivityCheckResult"
+          },
+          "diagnostics": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false,
+        "description": "Local diagnostics for troubleshooting configuration (never includes secrets).",
+        "example": "{\"application\":\"CodeSage\",\"version\":\"0.1.0\",\"environment\":\"Development\",\"aiProvider\":\"OpenAI\",\"aiModel\":\"gpt-4o-mini\",\"gitHubTokenConfigured\":true,\"openAiApiKeyConfigured\":true,\"gitHubConnectivity\":{\"status\":\"Skipped\",\"message\":\"External probes disabled\"},\"openAiConnectivity\":{\"status\":\"Skipped\",\"message\":\"External probes disabled\"},\"diagnostics\":[\"Configuration looks ready for local reviews.\"]}"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Configuration"
+    },
+    {
+      "name": "Health"
+    },
+    {
+      "name": "Pull Requests"
+    },
+    {
+      "name": "Repositories"
+    },
+    {
+      "name": "Reviews"
+    }
+  ]
+}
